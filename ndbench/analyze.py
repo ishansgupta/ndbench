@@ -118,8 +118,39 @@ def merge_judgments(metrics: pd.DataFrame, judgments: pd.DataFrame) -> pd.DataFr
     return metrics.merge(mean_scores, on=ID_COLS, how="left")
 
 
-def planned_contrasts(df: pd.DataFrame, metric: str) -> pd.DataFrame:
-    """For each model, fit a mixed model and report C1-C0, C2-C0, C2-C1."""
+def planned_contrasts_pooled(df: pd.DataFrame, metric: str) -> pd.DataFrame:
+    """Primary analysis: pooled mixed model with model as fixed-effect covariate.
+    Reports Condition contrasts averaged over the model sample."""
+    rows = []
+    df = df.dropna(subset=[metric]).copy()
+    if df.empty:
+        return pd.DataFrame()
+    df["condition_id"] = pd.Categorical(df["condition_id"], categories=["C0", "C1", "C2"])
+    if df[metric].nunique() < 2:
+        return pd.DataFrame()
+    try:
+        fit = smf.mixedlm(
+            f"{metric} ~ C(condition_id, Treatment(reference='C0')) + C(model)",
+            data=df, groups=df["query_id"],
+        ).fit(method="lbfgs", disp=False)
+    except Exception as e:
+        return pd.DataFrame([{"scope": "pooled", "metric": metric, "error": str(e)[:80]}])
+    for key in fit.params.index:
+        if "Treatment" in str(key) and "condition_id" in str(key):
+            rows.append({
+                "scope": "pooled",
+                "metric": metric,
+                "contrast": str(key).split("[T.")[-1].rstrip("]") + " − C0",
+                "estimate": fit.params[key],
+                "se": fit.bse[key],
+                "z": fit.tvalues[key],
+                "p": fit.pvalues[key],
+            })
+    return pd.DataFrame(rows)
+
+
+def planned_contrasts_per_model(df: pd.DataFrame, metric: str) -> pd.DataFrame:
+    """Appendix / robustness: separate mixed model per audited model."""
     rows = []
     df = df.dropna(subset=[metric]).copy()
     if df.empty:
@@ -132,13 +163,12 @@ def planned_contrasts(df: pd.DataFrame, metric: str) -> pd.DataFrame:
             fit = smf.mixedlm(f"{metric} ~ C(condition_id, Treatment(reference='C0'))",
                               data=sub, groups=sub["query_id"]).fit(method="lbfgs", disp=False)
         except Exception as e:
-            rows.append({"model": model_name, "metric": metric, "error": str(e)[:80]})
+            rows.append({"scope": model_name, "metric": metric, "error": str(e)[:80]})
             continue
-        # Extract coefficients for C1 vs C0 and C2 vs C0
         for key in fit.params.index:
             if "Treatment" in str(key) and "condition_id" in str(key):
                 rows.append({
-                    "model": model_name,
+                    "scope": model_name,
                     "metric": metric,
                     "contrast": str(key).split("[T.")[-1].rstrip("]") + " − C0",
                     "estimate": fit.params[key],
@@ -245,25 +275,39 @@ def main() -> None:
     print(summary.T.to_string())
     summary.to_csv(TAB_DIR / "summary_by_model_condition.csv")
 
-    # 4. Planned contrasts for each metric
-    contrasts_all = []
+    # 4. Planned contrasts — primary (pooled) and robustness (per-model)
+    pooled, per_model = [], []
     for m in summary_cols:
-        c = planned_contrasts(df, m)
-        if not c.empty:
-            contrasts_all.append(c)
-    contrasts = pd.concat(contrasts_all, ignore_index=True) if contrasts_all else pd.DataFrame()
-    if not contrasts.empty:
-        # Holm correction across all contrasts within each metric
-        from statsmodels.stats.multitest import multipletests
+        p = planned_contrasts_pooled(df, m)
+        if not p.empty:
+            pooled.append(p)
+        pm = planned_contrasts_per_model(df, m)
+        if not pm.empty:
+            per_model.append(pm)
+    from statsmodels.stats.multitest import multipletests
+
+    if pooled:
+        contrasts = pd.concat(pooled, ignore_index=True)
         contrasts["p_holm"] = np.nan
         for m, g in contrasts.groupby("metric"):
             if "p" in g.columns and g["p"].notna().any():
                 pv = g["p"].values
                 _, p_adj, _, _ = multipletests(pv, method="holm")
                 contrasts.loc[g.index, "p_holm"] = p_adj
-        contrasts.to_csv(TAB_DIR / "planned_contrasts.csv", index=False)
-        print("\nWrote planned contrasts table.")
+        contrasts.to_csv(TAB_DIR / "planned_contrasts_pooled.csv", index=False)
+        print("\nPrimary (pooled) contrasts — first 12 rows:")
         print(contrasts.head(12).to_string(index=False))
+
+    if per_model:
+        per_model_df = pd.concat(per_model, ignore_index=True)
+        per_model_df["p_holm"] = np.nan
+        for (s, m), g in per_model_df.groupby(["scope", "metric"]):
+            if "p" in g.columns and g["p"].notna().any():
+                pv = g["p"].values
+                _, p_adj, _, _ = multipletests(pv, method="holm")
+                per_model_df.loc[g.index, "p_holm"] = p_adj
+        per_model_df.to_csv(TAB_DIR / "planned_contrasts_per_model.csv", index=False)
+        print("\nPer-model (robustness) contrasts saved.")
 
     # 5. Figures
     print("\nWriting figures:")

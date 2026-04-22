@@ -1,18 +1,21 @@
-# Experimental Spec v0.3
+# Experimental Spec v0.4
 
 ## Working title
-**Do Frontier LLMs Adapt to Neurodivergence? A Cross-Model Audit of GPT-5 and Claude Sonnet's Response to Neurodivergence Context in the System Prompt**
+**How Frontier LLMs Adapt to Neurodivergence Context: A Measurement Framework for Surface vs. Structural Change in System-Prompted Responses**
+
+## Framing
+The paper is about **general LLM behavior** under ND context in the system prompt — not a head-to-head comparison of specific vendors. Two contemporary frontier chat models are used as a **sample** of the class of "frontier chat LLMs." Per-model results appear as robustness checks, not as the object of study.
 
 ## Contribution
 1. **Benchmark** (`NDBench`): reproducible suite of `(ND profile × query × domain)` stress tests targeting adaptations discussed in ND-LLM literature (Carik et al. 2025; Jang et al. 2024; Haroon & Dogar 2024).
-2. **Measurement framework**: automated metrics distinguishing **surface adaptation** (tone, hedging, affect) from **structural adaptation** (list density, step granularity, actionability), plus **harm metrics** (masking-reinforcement, infantilization, stereotyping, refusal, pathologization).
-3. **Cross-model audit**: systematic comparison of `gpt-5-chat-latest` and `claude-sonnet-4-6`.
+2. **Measurement framework**: automated metrics distinguishing **surface adaptation** (tone, hedging, affect) from **structural adaptation** (list density, headings, step granularity, readability), plus **harm metrics** (masking-reinforcement, infantilization, stereotyping, refusal, pathologization, validation-quality) via dual LLM-judge.
+3. **Empirical characterization**: how frontier chat LLMs as a class behave under each system-prompt condition.
 
 ## Research questions
-- **RQ1 (Adaptation magnitude):** Do outputs change measurably when ND context is provided via the system prompt?
+- **RQ1 (Adaptation magnitude):** Do LLMs' outputs change measurably when ND context is in the system prompt?
 - **RQ2 (Surface vs. structural):** Is adaptation concentrated in surface features, structural features, or both?
-- **RQ3 (Harm):** Does ND context reduce harmful patterns (masking-reinforcement, infantilization, pathologization, refusal) — or introduce new failure modes?
-- **RQ4 (Model disparity):** Do GPT-5-chat and Claude Sonnet 4.6 differ systematically in how they adapt?
+- **RQ3 (Harm):** Does ND context reduce harmful patterns — or introduce new failure modes? Does persona-declaration alone suffice, or are explicit directives needed?
+- **RQ4 (Robustness across models):** To what extent do the observed effects replicate across the two-model sample? Consistent direction → class-level claim; divergent → idiosyncratic, flagged.
 
 ## Design
 Fully crossed `Model × Condition × Profile × Query`.
@@ -59,11 +62,11 @@ Four named components, academically renamed from the Jentle AI prototype to avoi
 **Judge models:** `gpt-5-chat-latest` and `claude-sonnet-4-6`, cross-judging each other's outputs to control for self-preference bias. Inter-judge agreement reported as Krippendorff's α per harm metric. Metrics with α < 0.67 reported as exploratory only.
 
 ## Statistics
-- Mixed-effects linear models: `metric ~ model * condition + (1|profile) + (1|query)` via `statsmodels.formula.api.mixedlm`.
-- Planned contrasts: `C2 − C0`, `C2 − C1`, `C1 − C0` per metric per model.
+- **Primary (pooled):** mixed-effects linear model `metric ~ condition + model + (1|query_id)` — Condition contrasts averaged over the two-model sample; model included as fixed-effect nuisance term so the primary estimates speak to LLM-class behavior, not per-vendor differences.
+- **Robustness (per-model):** same model fit separately per audited LLM; results go in the appendix.
+- Planned contrasts: `C1 − C0`, `C2 − C0`, `C2 − C1`.
 - Effect sizes: Cohen's d with bootstrapped 95% CI.
-- Multiple-testing correction: Holm–Bonferroni across primary metrics.
-- Preregistered on OSF before running the benchmark.
+- Multiple-testing correction: Holm–Bonferroni within each metric.
 
 ## Limitations (stated explicitly in paper)
 - No human evaluation — metric validity relies on inter-judge agreement and construct definitions, not user preference.
