@@ -17,11 +17,14 @@
 \usepackage{caption}
 \captionsetup{font=small,labelfont=bf,skip=4pt}
 \setlist{nosep,leftmargin=1.2em}
-\titlespacing*{\section}{0pt}{1.0em}{0.35em}
-\titlespacing*{\subsection}{0pt}{0.7em}{0.25em}
+\titlespacing*{\section}{0pt}{1.4em}{0.5em}
+\titlespacing*{\subsection}{0pt}{0.9em}{0.3em}
 \titlespacing*{\paragraph}{0pt}{0.5em}{0.6em}
-\titleformat*{\section}{\large\bfseries}
-\titleformat*{\subsection}{\normalsize\bfseries}
+\titleformat{\section}{\centering\Large\bfseries}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\itshape}{\thesubsubsection}{0.5em}{}
+\titleformat{\paragraph}[runin]{\bfseries}{}{0pt}{}[.]
+\renewcommand{\abstractname}{\large\bfseries Abstract}
 \hypersetup{colorlinks=true, linkcolor=blue!50!black, citecolor=blue!50!black, urlcolor=blue!50!black}
 \setlength{\parskip}{0pt}
 \setlength{\parindent}{1em}
@@ -55,7 +58,7 @@ We answer these questions by building and releasing \ourbench{}, a benchmark of 
 
 The orientation of this paper is deliberately LLM-general. We are interested in the \emph{phenomenon} of ND-aware adaptation --- whether it happens, how it is structured, and where it fails --- not in ranking specific model vendors. Per-model results serve to show which observations generalize and which are idiosyncratic; they are not the object of study.
 
-\paragraph{Preview of findings.} Four patterns are consistent across the two-model sample. First, \textbf{adaptation magnitude is large} --- over two additional headings per response, roughly doubled step granularity, and $\sim$22\% longer outputs under the fully-directed condition. Second, \textbf{adaptation is structural, not cosmetic}: list density (the crudest ``bulleted-ness'' metric) barely moves, while heading count and per-step depth rise sharply, meaning the models are restructuring content rather than just bulleting more. Third, \textbf{persona declaration is not a substitute for explicit directives}: masking-reinforcement drops $36$--$44\%$ under the fully-directed condition but barely moves under persona-only. Fourth, \textbf{four of six harm dimensions fail inter-judge reliability} (infantilization, stereotyping, pathologization, refusal), either because baselines are near floor or because the constructs are less verbally stereotyped; we treat those as exploratory and center primary harm claims on masking-reinforcement and validation-quality.
+\paragraph{Preview of findings.} Four patterns are consistent across the two-model sample. First, \textbf{adaptation magnitude is large} --- over two additional headings per response, roughly doubled step granularity, and $\sim$22\% longer outputs under the fully-directed condition. Second, \textbf{adaptation is structural, not cosmetic}: list density (the crudest ``bulleted-ness'' metric) barely moves, while heading count and per-step depth rise sharply, meaning the models are restructuring content rather than just bulleting more. Third, \textbf{persona declaration is not a substitute for explicit directives}: masking-reinforcement drops $36$--$44\%$ under the fully-directed condition but barely moves under persona-only. Fourth, \textbf{the adaptation is more direct, not more hedged}: softener counts (``maybe / perhaps / might / could'') fall by over 75\% (e.g.\ \gpt{}: $2.12 \to 0.50$ per response), while validation-quality judge scores rise sharply (\gpt{}: $1.70 \to 3.31$ on a 0--4 scale). This contradicts a plausible prior that ND-aware outputs would become \emph{softer} or more \emph{hedged}; instead, the models become decisive and explicitly validating when told the user is neurodivergent.
 
 \section{Related Work}
 
