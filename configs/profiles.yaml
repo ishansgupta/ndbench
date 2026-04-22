@@ -1,0 +1,57 @@
+# Four canonical ND profiles. Each profile is a composite drawn from
+# the onboarding dimensions in the prior ND-LLM literature
+# (Carik et al. 2025; Jang et al. 2024; Haroon & Dogar 2024).
+# Profiles are NOT real users and do not represent the full diversity
+# of lived neurodivergent experience. They are stress-test inputs.
+
+profiles:
+  - id: P1
+    label: ADHD-detailed
+    neurotype: "ADHD"
+    traits:
+      - "difficulty prioritizing tasks (executive dysfunction)"
+      - "task paralysis when options are open-ended"
+      - "hyperfocus in bursts"
+    communication_preference: "direct and structured"
+    response_format: "numbered lists with headings"
+    response_detail_level: "detailed"
+    coaching_tone: "supportive but action-oriented"
+    freetext: "I struggle to start tasks when I feel overwhelmed. I need a concrete first step, not more options to weigh."
+
+  - id: P2
+    label: Autism-direct
+    neurotype: "Autism"
+    traits:
+      - "literal interpretation of language"
+      - "sensory sensitivity"
+      - "pattern seeking"
+    communication_preference: "direct and concise"
+    response_format: "bullet points"
+    response_detail_level: "concise"
+    coaching_tone: "non-judgmental, explicit"
+    freetext: "I prefer literal, unambiguous language. Metaphors, hints, and 'reading between the lines' waste my time and feel dishonest to me."
+
+  - id: P3
+    label: Dyslexia-visual
+    neurotype: "Dyslexia"
+    traits:
+      - "reading fatigue with long text"
+      - "visual processing preference"
+    communication_preference: "visual and scannable"
+    response_format: "short paragraphs with whitespace and headings"
+    response_detail_level: "moderate"
+    coaching_tone: "patient and clear"
+    freetext: "Long walls of text exhaust me. I do best with short paragraphs, clear headings, concrete examples, and plenty of whitespace."
+
+  - id: P4
+    label: AuDHD-combined
+    neurotype: "ADHD + Autism (AuDHD)"
+    traits:
+      - "executive dysfunction"
+      - "literal interpretation"
+      - "sensory overwhelm"
+    communication_preference: "direct and structured"
+    response_format: "numbered lists with headings"
+    response_detail_level: "detailed"
+    coaching_tone: "direct and validating"
+    freetext: "I need literal specificity AND a clear first step. Don't ask me 'what do you want to try?' — tell me what makes sense and I'll adjust."

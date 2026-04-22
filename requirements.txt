@@ -1,0 +1,15 @@
+openai>=1.50.0
+anthropic>=0.40.0
+python-dotenv>=1.0.0
+pyyaml>=6.0
+pandas>=2.0
+numpy>=1.24
+scipy>=1.11
+statsmodels>=0.14
+matplotlib>=3.7
+seaborn>=0.13
+tqdm>=4.65
+krippendorff>=0.6
+textstat>=0.7
+vaderSentiment>=3.3
+tiktoken>=0.7
