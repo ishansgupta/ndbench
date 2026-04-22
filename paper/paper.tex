@@ -28,7 +28,7 @@ in System-Prompted Responses}
 \maketitle
 
 \begin{abstract}
-Neurodivergent (ND) users of general-purpose large language models (LLMs) report that default outputs are pitched to a neurotypical audience, requiring effortful prompt engineering to obtain usable assistance. Whether modern frontier chat LLMs actually adapt when ND context is supplied in the system prompt --- and if so, how --- is an empirical question that has not been systematically measured. This paper contributes (i) \ourbench{}, a reproducible benchmark of 576 responses spanning three system-prompt conditions, four canonical ND profiles, and 24 queries over 4 domains, one adversarially designed to elicit conformity (``masking'') advice; (ii) a measurement framework that separates \emph{surface} adaptation (tone, hedging, affect, softeners, emoji) from \emph{structural} adaptation (list density, headings, step granularity, readability); and (iii) a dual LLM-judge harness scoring six harm and quality dimensions with inter-judge reliability reported via Krippendorff's $\alpha$. Running the benchmark on a sample of two frontier chat models, we find that LLMs \emph{do} adapt under ND context, and the effect is large and directionally consistent across models: relative to a vanilla no-system-prompt baseline, the fully-directed condition produces $\sim$22\% more tokens, over two additional headings per response, and roughly a doubling of mean step granularity (all $p < 10^{-8}$, Holm-corrected, pooled). The adaptation is \emph{structural as well as surface}: responses restructure how they present advice, not merely how they soften it. On the two judge dimensions with acceptable inter-rater agreement, the explicit-directive condition roughly \emph{halves} masking-reinforcement in the adversarial domain while meaningfully improving validation quality. Declaring the user's ND profile alone does not replicate the masking-reinforcement reduction --- explicit safeguard directives are required. We release \ourbench{} and all responses/judgments to enable replication and behavioral tracking across future models.
+Neurodivergent (ND) users of general-purpose large language models (LLMs) report that default outputs are pitched to a neurotypical audience, requiring effortful prompt engineering to obtain usable assistance. Whether modern frontier chat LLMs actually adapt when ND context is supplied in the system prompt --- and if so, how --- is an empirical question that has not been systematically measured. This paper contributes (i) \ourbench{}, a reproducible benchmark of 576 responses spanning three system-prompt conditions, four canonical ND profiles, and 24 queries over 4 domains, one adversarially designed to elicit conformity (``masking'') advice; (ii) a measurement framework that separates \emph{surface} adaptation (tone, hedging, affect, softeners, emoji) from \emph{structural} adaptation (list density, headings, step granularity, readability); and (iii) a dual LLM-judge harness scoring six harm and quality dimensions with inter-judge reliability reported via Krippendorff's $\alpha$. Running the benchmark on a sample of two frontier chat models, we find that LLMs \emph{do} adapt under ND context, and the effect is large and directionally consistent across models: relative to a vanilla no-system-prompt baseline, the fully-directed condition produces $\sim$22\% more tokens, over two additional headings per response, and roughly a doubling of mean step granularity (all $p < 10^{-8}$, Holm-corrected, pooled). The adaptation is \emph{structural as well as surface}: responses restructure how they present advice, not merely how they soften it. On the two judge dimensions with acceptable inter-rater agreement (Krippendorff's $\alpha = 0.81$ and $0.70$), the explicit-directive condition reduces masking-reinforcement by 36--44\% and substantially improves validation quality. Declaring the user's ND profile alone does not replicate the masking-reinforcement reduction --- explicit safeguard directives are required. We release \ourbench{} and all responses/judgments to enable replication and behavioral tracking across future models.
 \end{abstract}
 
 \section{Introduction}
@@ -46,6 +46,8 @@ We answer these questions by building and releasing \ourbench{}, a benchmark of 
 \end{enumerate}
 
 The orientation of this paper is deliberately LLM-general. We are interested in the \emph{phenomenon} of ND-aware adaptation --- whether it happens, how it is structured, and where it fails --- not in ranking specific model vendors. Per-model results serve to show which observations generalize and which are idiosyncratic; they are not the object of study.
+
+\paragraph{Preview of findings.} (1) Sampled frontier chat LLMs do adapt under ND system-prompt context, and the effect is large (over two additional headings per response, roughly doubled step granularity, $\sim$22\% longer outputs). (2) The adaptation is both surface (softeners, affect, emoji) \emph{and} structural (headings, step depth); \emph{list density}, the crudest ``bulleted-ness'' metric, barely moves --- meaning the models aren't just bulleting more, they are restructuring content. (3) Of six LLM-judged harm dimensions, only two (masking-reinforcement and validation-quality) meet our inter-judge reliability threshold; on those, fully-directed system prompts reduce masking-reinforcement by 36--44\% and substantially raise validation-quality, whereas persona-declaration alone does not reliably reduce masking. (4) Several hypothesized failure modes (infantilization, stereotyping, pathologization, refusal) are at or near floor across all conditions and cannot be reliably distinguished by our judges --- a methodological outcome we interpret cautiously.
 
 \section{Related Work}
 
@@ -158,19 +160,19 @@ On the \textbf{structural} side, headings and per-step depth rise substantially 
 \toprule
 Dimension & $\alpha$ & Status \\
 \midrule
-masking\_reinforcement  & $0.835$  & primary \\
-validation\_quality     & $0.735$  & primary \\
-infantilization         & $-0.68$  & exploratory \\
-stereotyping            & $-0.00$  & exploratory \\
+masking\_reinforcement  & $0.808$  & primary \\
+validation\_quality     & $0.700$  & primary \\
+infantilization         & $-0.70$  & exploratory \\
+stereotyping            & $-0.03$  & exploratory \\
 refusal                 & $-0.01$  & exploratory \\
-pathologization         & $\phantom{-}0.05$ & exploratory \\
+pathologization         & $\phantom{-}0.01$ & exploratory \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\paragraph{Masking-reinforcement.} Condition C2 roughly \emph{halves} the mean masking-reinforcement score relative to C0 in both audited models (Claude: $0.56 \to 0.29$; GPT: $0.78 \to 0.40$). Persona declaration alone (C1) is substantially less effective: Claude's mean actually ticks up slightly ($0.56 \to 0.58$) while GPT's moves only modestly ($0.78 \to 0.70$). The masking-reduction effect is concentrated in the adversarial \textsc{masking-bait} domain, as expected: these are the queries that explicitly request conformity advice. Figure~\ref{fig:masking} shows the by-domain breakdown.
+\paragraph{Masking-reinforcement.} Condition C2 substantially reduces the mean masking-reinforcement score relative to C0 in both audited models (Claude: $0.56 \to 0.31$, a 44\% reduction; GPT: $0.78 \to 0.50$, a 36\% reduction). Persona declaration alone (C1) is substantially less effective: Claude's mean is essentially unchanged ($0.56 \to 0.58$) while GPT's moves only modestly ($0.78 \to 0.76$). The masking-reduction effect is concentrated in the adversarial \textsc{masking-bait} domain, as expected: these are the queries that explicitly request conformity advice. Figure~\ref{fig:masking} shows the by-domain breakdown.
 
-\paragraph{Validation-quality.} Both C1 and C2 raise validation-quality scores over C0, with C2 producing the largest gain. Claude moves from $1.88$ (C0) to $2.74$ (C2) on the 0--4 scale; GPT moves from $1.70$ to $3.18$. Both effects are large; the GPT change is especially striking, suggesting that the vanilla model was under-validating relative to its capability under direction.
+\paragraph{Validation-quality.} Both C1 and C2 raise validation-quality scores over C0, with C2 producing the largest gain. Claude moves from $1.88$ (C0) to $2.76$ (C2) on the 0--4 scale; GPT moves from $1.70$ to $3.31$. Both effects are large; the GPT change is especially striking, suggesting that the vanilla model was under-validating relative to its capability under direction.
 
 \paragraph{Together these findings point to a practical conclusion.} The \emph{Non-Conformity Safeguard} and \emph{Acknowledgment-Then-Action} directives carry most of the harm-reducing signal in our benchmark. Merely declaring the user's neurotype is insufficient for the safeguard: explicit instruction is required before frontier chat models reliably decline to coach users on how to mask.
 
@@ -217,7 +219,7 @@ Three takeaways, oriented to readers who might deploy or audit an LLM-backed ass
 
 \paragraph{Adaptation is structural, not cosmetic.} The easy critique of ``ND-aware'' prompt engineering is that it only changes tone --- softening, emoji, cheerful validation --- without altering substance. Our data pushes back on that critique. Tone does change (softeners fall, affect cools, emoji rises), but so do structural depth features that are harder to fake: heading counts rise by more than two per response, mean words per enumerated step roughly double, and the models produce longer outputs while holding list density approximately constant. The output is being restructured, not merely repainted.
 
-\paragraph{Persona declaration is not a substitute for directives.} Comparing C1 (``the user is neurodivergent, here are their preferences'') against C2 (same plus four explicit directives), we see that C1 already captures a large share of the structural gains. This might suggest that persona declaration is enough. The masking-reinforcement data says otherwise. Under C1, the sampled models' masking scores barely move from C0; it is only under C2, where the Non-Conformity Safeguard directive is explicit, that masking-reinforcement roughly halves. In practice, teams wiring an ND-aware system prompt must include explicit anti-conformity instructions: relying on the model to infer safeguards from a persona statement is not reliable.
+\paragraph{Persona declaration is not a substitute for directives.} Comparing C1 (``the user is neurodivergent, here are their preferences'') against C2 (same plus four explicit directives), we see that C1 already captures a large share of the structural gains. This might suggest that persona declaration is enough. The masking-reinforcement data says otherwise. Under C1, the sampled models' masking scores barely move from C0 (Claude: $0.56 \to 0.58$; GPT: $0.78 \to 0.76$); it is only under C2, where the Non-Conformity Safeguard directive is explicit, that masking-reinforcement drops by 36--44\%. In practice, teams wiring an ND-aware system prompt must include explicit anti-conformity instructions: relying on the model to infer safeguards from a persona statement is not reliable.
 
 \paragraph{The low-harm baseline is itself a finding.} Infantilization, stereotyping, pathologization, and refusal were all at or near floor across conditions in our benchmark --- and our judges could not measure them reliably, which suggests these failure modes are, at minimum, not frequent enough and not stereotyped enough in the sampled models' outputs for two LLM judges to agree on detecting them. This pushes back against informal accounts that assume LLMs are broadly patronizing or dismissive toward ND users. It does not imply those harms never happen; it implies that if they are happening, they are happening in the long tail that our benchmark was not designed to surface. Future work with targeted adversarial probes and a more specialized rubric could revisit those dimensions.
 
@@ -240,9 +242,56 @@ Three takeaways, oriented to readers who might deploy or audit an LLM-backed ass
 This study involves no human subjects. All prompts are released. The study does not claim clinical, diagnostic, or therapeutic status. Benchmark and responses are released under CC-BY-4.0.
 
 \section*{Reproducibility}
-Code, configs, raw responses, judge scores, and analysis scripts are available at \url{<REPO-URL-TBD>}; the exact commit is fixed at submission. Reruns should reproduce results to within API drift.
+Code, configs, raw responses, judge scores, and analysis scripts will be released in a public repository at submission; the exact commit hash is fixed at that point. Reruns should reproduce results to within API drift. Specifically: 576 responses over 2 models $\times$ 3 conditions $\times$ 4 profiles $\times$ 24 queries; 1{,}152 judge scores (2 judges per response); all sampled at temperature $0$ for determinism.
 
 \bibliographystyle{plainnat}
 \bibliography{refs}
+
+\clearpage
+\appendix
+
+\section{Full C2 system prompt (adaptation directives)}
+\label{app:c2prompt}
+The profile block is filled in at runtime from \texttt{configs/profiles.yaml}; the directive block is fixed.
+
+\begin{quote}\small\ttfamily
+You are assisting a neurodivergent user. Adapt your response to their profile and follow the four directives below.\\[0.3em]
+USER PROFILE\\
+Neurotype: \{neurotype\}\\
+Traits: \{traits\}\\
+Communication preference: \{communication\_preference\}\\
+Response format preference: \{response\_format\}\\
+Response detail level: \{response\_detail\_level\}\\
+Coaching tone preference: \{coaching\_tone\}\\
+Additional context from the user: \{freetext\}\\[0.3em]
+ADAPTATION DIRECTIVES\\[0.3em]
+1. Structured Output Directive\\
+   -- Present complex information in numbered lists, bullet points, or short labeled sections.\\
+   -- Use headings and whitespace; avoid dense paragraphs (``walls of text'').\\
+   -- Match the user's declared format and detail-level preference above.\\[0.3em]
+2. Task Decomposition Directive\\
+   -- If the user describes a task, break it into discrete, actionable steps.\\
+   -- Start with the simplest, lowest-friction step to build momentum.\\
+   -- Be concrete: name the step, not the category.\\[0.3em]
+3. Non-Conformity Safeguards\\
+   -- Do not advise the user to ``seem normal,'' ``act neurotypical,'' ``mask,'' or otherwise suppress their traits.\\
+   -- When they ask how to conform, acknowledge the external pressure but offer adaptive strategies rather than conformity advice.\\
+   -- Do not pathologize their neurotype.\\[0.3em]
+4. Acknowledgment-Then-Action Framework\\
+   -- Briefly validate the user's stated experience or constraint before giving advice.\\
+   -- Then provide practical, specific, directly usable strategies.\\
+   -- Do not ask clarifying questions when the user has given you enough to proceed --- decide and act.\\[0.3em]
+Respect the user's stated preferences. Do not lecture them about neurodiversity.
+\end{quote}
+
+The C1 (persona-only) prompt includes the USER PROFILE block above without the four directives.
+
+\section{Per-model means (robustness)}
+\label{app:permodel}
+Full per-model regression outputs are in the repository at \path{paper/tables/planned_contrasts_per_model.csv} and \path{paper/tables/summary_by_model_condition.csv}. In the interest of space we note here only that the direction of every pooled contrast in Table~\ref{tab:pooled} holds within each of the two audited models individually; effect magnitudes differ by at most a factor of two between models, and no pooled contrast is reversed by a single-model fit.
+
+\section{Judge rubric}
+\label{app:rubric}
+The full rubric prompt used by both judges is reproduced verbatim in the repository at \path{ndbench/judges.py} (constant \texttt{RUBRIC\_PROMPT}). Scales are 0--4 except \emph{refusal} which is binary 0/1. Judges return only a JSON object and are run at temperature $0$.
 
 \end{document}
