@@ -13,12 +13,24 @@
 \usepackage{titlesec}
 \usepackage{amsmath}
 \usepackage{amssymb}
-\setlist{nosep}
-\titlespacing*{\section}{0pt}{1.2em}{0.4em}
-\titlespacing*{\subsection}{0pt}{0.8em}{0.3em}
+\usepackage{fancyvrb}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf,skip=4pt}
+\setlist{nosep,leftmargin=1.2em}
+\titlespacing*{\section}{0pt}{1.0em}{0.35em}
+\titlespacing*{\subsection}{0pt}{0.7em}{0.25em}
+\titlespacing*{\paragraph}{0pt}{0.5em}{0.6em}
+\titleformat*{\section}{\large\bfseries}
+\titleformat*{\subsection}{\normalsize\bfseries}
 \hypersetup{colorlinks=true, linkcolor=blue!50!black, citecolor=blue!50!black, urlcolor=blue!50!black}
+\setlength{\parskip}{0pt}
+\setlength{\parindent}{1em}
+\setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
 
 \newcommand{\ourbench}{\textsc{NDBench}}
+\newcommand{\gpt}{\texttt{gpt-5-chat-latest}}
+\newcommand{\claude}{\texttt{claude-sonnet-4-6}}
 
 \title{How Frontier LLMs Adapt to Neurodivergence Context:\\
 \large A Measurement Framework for Surface vs.\ Structural Change\\
@@ -30,7 +42,7 @@ in System-Prompted Responses}
 \maketitle
 
 \begin{abstract}
-Neurodivergent (ND) users of general-purpose large language models (LLMs) report that default outputs are pitched to a neurotypical audience, requiring effortful prompt engineering to obtain usable assistance. Whether modern frontier chat LLMs actually adapt when ND context is supplied in the system prompt --- and if so, how --- is an empirical question that has not been systematically measured. This paper contributes (i) \ourbench{}, a reproducible benchmark of 576 responses spanning three system-prompt conditions, four canonical ND profiles, and 24 queries over 4 domains, one adversarially designed to elicit conformity (``masking'') advice; (ii) a measurement framework that separates \emph{surface} adaptation (tone, hedging, affect, softeners, emoji) from \emph{structural} adaptation (list density, headings, step granularity, readability); and (iii) a dual LLM-judge harness scoring six harm and quality dimensions with inter-judge reliability reported via Krippendorff's $\alpha$. Running the benchmark on a sample of two frontier chat models, we find that LLMs \emph{do} adapt under ND context, and the effect is large and directionally consistent across models: relative to a vanilla no-system-prompt baseline, the fully-directed condition produces $\sim$22\% more tokens, over two additional headings per response, and roughly a doubling of mean step granularity (all $p < 10^{-8}$, Holm-corrected, pooled). The adaptation is \emph{structural as well as surface}: responses restructure how they present advice, not merely how they soften it. On the two judge dimensions with acceptable inter-rater agreement (Krippendorff's $\alpha = 0.81$ and $0.70$), the explicit-directive condition reduces masking-reinforcement by 36--44\% and substantially improves validation quality. Declaring the user's ND profile alone does not replicate the masking-reinforcement reduction --- explicit safeguard directives are required. We release \ourbench{} and all responses/judgments to enable replication and behavioral tracking across future models.
+We ask whether frontier chat LLMs actually adapt their outputs when neurodivergence (ND) context is supplied in the system prompt --- and if so, \emph{how}. Running a 576-response benchmark (\ourbench{}) across two frontier chat models, three system-prompt conditions (vanilla; ND-profile declaration only; ND-profile plus four explicit adaptation directives), four canonical ND profiles, and 24 queries over four domains (including an adversarial \textsc{masking-bait} domain), we find four consistent patterns. \textbf{(P1)} LLMs adapt substantially under ND context: the fully-directed condition produces $\sim$22\% more tokens, over two additional headings per response, and roughly doubles mean step granularity (all $p < 10^{-8}$, pooled, Holm-corrected). \textbf{(P2)} The adaptation is \emph{structural}, not merely \emph{cosmetic}: list density --- the crudest ``bulleted-ness'' measure --- barely moves, while heading count and per-step word depth rise sharply. The model restructures \emph{what} it says, not just \emph{how} it softens it. \textbf{(P3)} Declaring the user's neurotype alone is not enough: masking-reinforcement --- advising the user to ``seem normal'' when they ask --- drops 36--44\% only under the fully-directed condition, and barely moves under persona-only. \textbf{(P4)} Four of six LLM-judged harm dimensions (infantilization, stereotyping, pathologization, refusal) fail our pre-specified inter-judge reliability threshold ($\alpha \geq 0.67$) and so are reported as exploratory; the two that pass --- masking-reinforcement and validation-quality --- carry the primary harm findings. We release \ourbench{} (prompts, responses, judgments, code) as a reusable audit for tracking ND-aware adaptation across future models.
 \end{abstract}
 
 \section{Introduction}
@@ -39,27 +51,39 @@ Neurodivergent (ND) communities --- including people with ADHD, autism, dyslexia
 
 This suggests a natural empirical question: \emph{how do modern LLMs behave when neurodivergence context is supplied in the system prompt?} Do they adapt at all? If so, is the adaptation substantive (restructuring what is said) or merely cosmetic (softening how it is said)? And do they reduce harmful patterns such as advising the user to ``act more normal'' when the user explicitly asks for such advice?
 
-We answer these questions by building and releasing \ourbench{}, a benchmark of 576 LLM responses organized as a fully crossed $\text{Model} \times \text{Condition} \times \text{Profile} \times \text{Query}$ design. Our contributions are three.
-
-\begin{enumerate}[leftmargin=*]
-  \item \textbf{A framework for measuring ND-aware adaptation in LLM output}, separating surface features (tone, hedging, affect, softeners, emoji) from structural features (list density, heading count, step granularity, sentence length, readability), and combining deterministic metrics with a dual LLM-judge harness that scores six harm and quality dimensions against a published rubric.
-  \item \textbf{\ourbench{} itself}: a 576-cell benchmark pairing three system-prompt conditions (no system prompt; ND profile declared only; ND profile plus four adaptation directives) with four canonical ND profiles and 24 queries across four domains --- including an adversarial \textsc{masking-bait} domain in which every query explicitly requests help conforming to neurotypical norms.
-  \item \textbf{An empirical characterization of how frontier chat LLMs adapt}, treating two contemporary frontier chat models as a sample rather than as an endpoint of comparison. We report pooled effects as our primary result and per-model breakdowns as robustness checks.
-\end{enumerate}
+We answer these questions by building and releasing \ourbench{}, a benchmark of 576 LLM responses organized as a fully crossed $\text{Model} \times \text{Condition} \times \text{Profile} \times \text{Query}$ design. The paper makes three contributions: a \emph{measurement framework} that separates surface adaptation (tone, hedging, affect, softeners, emoji) from structural adaptation (list density, heading count, step granularity, sentence length, readability), combining deterministic metrics with a dual LLM-judge harness against a published rubric; \ourbench{} itself, pairing three system-prompt conditions (vanilla; ND-profile declared only; ND-profile plus four adaptation directives) with four canonical ND profiles and 24 queries spanning four domains, one of which (\textsc{masking-bait}) adversarially requests help conforming to neurotypical norms; and an empirical characterization of how frontier chat LLMs adapt, treating two contemporary chat models as a sample rather than as the object of comparison.
 
 The orientation of this paper is deliberately LLM-general. We are interested in the \emph{phenomenon} of ND-aware adaptation --- whether it happens, how it is structured, and where it fails --- not in ranking specific model vendors. Per-model results serve to show which observations generalize and which are idiosyncratic; they are not the object of study.
 
-\paragraph{Preview of findings.} (1) Sampled frontier chat LLMs do adapt under ND system-prompt context, and the effect is large (over two additional headings per response, roughly doubled step granularity, $\sim$22\% longer outputs). (2) The adaptation is both surface (softeners, affect, emoji) \emph{and} structural (headings, step depth); \emph{list density}, the crudest ``bulleted-ness'' metric, barely moves --- meaning the models aren't just bulleting more, they are restructuring content. (3) Of six LLM-judged harm dimensions, only two (masking-reinforcement and validation-quality) meet our inter-judge reliability threshold; on those, fully-directed system prompts reduce masking-reinforcement by 36--44\% and substantially raise validation-quality, whereas persona-declaration alone does not reliably reduce masking. (4) Several hypothesized failure modes (infantilization, stereotyping, pathologization, refusal) are at or near floor across all conditions and cannot be reliably distinguished by our judges --- a methodological outcome we interpret cautiously.
+\paragraph{Preview of findings.} Four patterns are consistent across the two-model sample. First, \textbf{adaptation magnitude is large} --- over two additional headings per response, roughly doubled step granularity, and $\sim$22\% longer outputs under the fully-directed condition. Second, \textbf{adaptation is structural, not cosmetic}: list density (the crudest ``bulleted-ness'' metric) barely moves, while heading count and per-step depth rise sharply, meaning the models are restructuring content rather than just bulleting more. Third, \textbf{persona declaration is not a substitute for explicit directives}: masking-reinforcement drops $36$--$44\%$ under the fully-directed condition but barely moves under persona-only. Fourth, \textbf{four of six harm dimensions fail inter-judge reliability} (infantilization, stereotyping, pathologization, refusal), either because baselines are near floor or because the constructs are less verbally stereotyped; we treat those as exploratory and center primary harm claims on masking-reinforcement and validation-quality.
 
 \section{Related Work}
 
-Three strands of prior work motivate this study.
+Our work sits at the intersection of four strands of research: qualitative and systems studies of how neurodivergent users already use and adapt LLMs; psychology literature on autistic masking, which grounds our Non-Conformity Safeguard directive; benchmarks for LLM behavioral audit; and LLM-as-judge methodology, which we use for harm measurement.
 
-\paragraph{ND users and general-purpose LLMs.} \citet{carik2025} analyzed 61 Reddit communities and catalogued twenty LLM use cases by neurodivergent users across emotional well-being, interpersonal communication, and productivity. They document recurring complaints of ``overly neurotypical'' outputs and user-driven workarounds including hand-crafted system prompts. \citet{jamshed2025} reports similar patterns in a student cohort, including critique of the neuronormative productivity assumptions embedded in default GenAI tool behaviors.
+\subsection{Neurodivergent users and LLMs}
 
-\paragraph{LLMs as communication assistants.} \citet{jang2024} found that autistic workers seeking social-communication advice preferred LLM responses over a human confederate's, citing the model's well-structured, step-by-step, and non-judgmental tone --- but also observed clinician caution about reinforcing performative conformity. \citet{haroon2024} developed \textsc{TwIPS}, a texting assistant that tailors suggestions to the user's writing style, and surfaced the tension between personalization quality and privacy exposure through onboarding questionnaires. \citet{goodman2022} built \textsc{LaMPost}, an LLM-backed writing aid for adults with dyslexia; and \citet{berrezueta2024} evaluated ChatGPT as a therapy-enhancement tool for ADHD populations.
+\citet{carik2025} qualitatively analyzed 61 Reddit communities and catalogued 20 LLM use cases by neurodivergent users across five thematic areas including emotional well-being, interpersonal communication, and productivity. Their participants reported persistent ``overly neurotypical'' outputs and documented grassroots workarounds --- most prominently hand-crafted system prompts that declare the user's neurotype and specify output format. Our benchmark formalizes the conditions under which that workaround actually works. \citet{jamshed2025} reports similar patterns in a neurodivergent student cohort and critiques the neuronormative productivity assumptions embedded in default GenAI tool behavior.
 
-\paragraph{Behavioral audits of LLMs.} Cross-model behavioral audits are an established empirical genre for characterizing LLM output regularities. Our audit differs in two ways: (1) we deliberately separate surface from structural adaptation using deterministic metrics, avoiding the common confound that LLM judges reward fluent hedging as ``empathy''; and (2) we include an adversarial query domain whose purpose is to elicit harmful conformity advice, so that harm reduction can be measured directly rather than inferred.
+A second group of papers examines purpose-built assistants. \citet{jang2024} found that autistic workers seeking social-communication advice preferred GPT-4 responses over a human confederate's, citing the model's structured, step-by-step, non-judgmental tone --- while clinicians in the same study worried that the LLM was reinforcing performative conformity. This tension --- user-perceived helpfulness vs.\ clinician-perceived risk of masking reinforcement --- is precisely what our masking-reinforcement judge dimension is designed to surface. \citet{haroon2024} built \textsc{TwIPS}, an LLM-backed texting assistant for autistic users that tailors suggestions to each user's own writing style, and surfaced the personalization-versus-privacy tradeoff we inherit in our onboarding-style profiles. \citet{goodman2022} developed \textsc{LaMPost}, an LLM-backed email writing aid for adults with dyslexia, reporting enthusiasm for style-rewriting features but concluding that LLM quality in early 2022 was not yet sufficient for real-world use. \citet{berrezueta2024} evaluated ChatGPT as a therapy-enhancement tool for ADHD via a Delphi panel of child therapists, reporting potential with caveats around privacy and cultural sensitivity.
+
+\subsection{Autistic masking and the Non-Conformity Safeguard}
+
+Our C2 condition includes a \emph{Non-Conformity Safeguard} directive that instructs the model not to advise masking or ``seeming normal.'' This reflects a well-developed literature on autistic camouflaging. \citet{hull2017} provides the foundational qualitative account --- 92 autistic adults describe masking as a combination of compensation and suppression strategies motivated by fitting-in and connection needs, and carrying long-term costs of exhaustion, identity confusion, and mental-health harm. \citet{hull2019catq} operationalized this into the Camouflaging Autistic Traits Questionnaire (CAT-Q), a validated 25-item instrument. \citet{pearson2021} reframe masking as an unsurprising response to stigma embedded in a deficit narrative, arguing that the ``choice'' to mask is largely illusory. Our safeguard directive operationalizes this clinical consensus: advising a user on how to mask better, even when requested, is advising them to accept the very costs these papers catalogue.
+
+\subsection{Neuronormativity in HCI}
+
+\citet{spiel2022} conduct a critical literature review of ADHD technology research from a neurodivergent-insider perspective, concluding that the field predominantly aims at \emph{mitigating} ADHD traits toward neurotypical norms rather than accommodating them. \citet{bennett2020} argue that an AI-fairness framing is insufficient for disability ethics because fairness itself inherits normative assumptions about how people should be. Both frames are directly relevant: our choice to measure \emph{masking-reinforcement} as an LLM harm --- rather than measuring only style match --- is a methodological commitment to not treating conformity-to-neurotypical-norms as a success metric.
+
+\subsection{LLM behavioral audits and demographic prompting}
+
+Benchmark-driven audits of LLM social behavior are an established genre. \citet{parrish2022} introduced \textsc{BBQ}, a hand-built question-answering benchmark across nine social dimensions. \citet{smith2022} extended coverage to 13 demographic axes with the \textsc{HolisticBias} dataset (and the ``I'm sorry to hear that \ldots'' template from which we take methodological cues). \citet{dhamala2021} introduced \textsc{BOLD} for open-ended generation bias. Most directly relevant, \citet{gupta2024persona} showed that assigning a demographic persona to an LLM (``you are an Asian person'') introduces large performance drops on reasoning tasks even as the model overtly rejects stereotypes when asked directly --- evidence that persona assignment can activate implicit bias that surface metrics miss. Our study uses persona assignment not to probe reasoning degradation but to ask whether the model's \emph{adaptation} is substantive (structural change) or cosmetic (surface softening), a distinction not made by the prior audit literature.
+
+\subsection{LLM-as-judge}
+
+We rely on dual LLM judges for harm-dimension scoring. The foundational paper is \citet{zheng2023}, which showed that strong LLM judges on \textsc{MT-Bench} agree with human preferences at $>80\%$ --- the inter-human agreement level --- while also documenting verbosity, position, and self-preference biases. \citet{panickssery2024} tightens the self-preference finding: LLMs recognize their own generations and favor them, and self-recognition capability correlates linearly with self-preference bias. We mitigate this with cross-judging and by reporting Krippendorff's $\alpha$ per metric, flagging any dimension below 0.67 as exploratory. \citet{sharma2023sycophancy} documents a related risk --- sycophancy --- that our rubric explicitly de-incentivizes by framing scoring dimensions around behavior, not around agreement with the user.
+
+\paragraph{How we differ.} Prior ND-LLM work is largely qualitative (interview, Reddit analysis) or tool-focused (one bespoke assistant per neurotype). Prior LLM-audit work rarely targets disability. We contribute a reusable quantitative audit pipeline that targets ND-specific harms (especially masking-reinforcement) and cleanly separates surface from structural adaptation.
 
 \section{Method}
 
@@ -230,15 +254,17 @@ Three takeaways, oriented to readers who might deploy or audit an LLM-backed ass
 \section{Limitations}
 \label{sec:lim}
 
-\begin{itemize}[leftmargin=*]
-  \item \textbf{No human evaluation.} Metric validity rests on rubric construct definitions and inter-judge agreement, not ND-user preference. We do not claim users in the wild would prefer any particular condition's output.
-  \item \textbf{English-only.} All queries, profiles, and judge rubrics are English.
-  \item \textbf{Snapshot in time.} Frontier models drift; we fix model IDs and report response timestamps. Replication should expect API drift.
-  \item \textbf{Canonical profiles.} The four profiles are composite stress tests, not claims about individual lived experience.
-  \item \textbf{Two-model sample.} Our sample is two contemporary frontier chat models. Where directional effects are consistent, we claim evidence about LLM behavior as a class; where they differ, we do not generalize. A larger sample --- including Gemini variants that were inaccessible at study time due to billing constraints, and open-weights models --- is future work.
-  \item \textbf{Judge reliability is uneven.} Four of six harm dimensions (infantilization, stereotyping, pathologization, refusal) fell below our pre-specified $\alpha = 0.67$ threshold. The two LLM judges disagreed systematically on those constructs. We report them as exploratory only, and we do not claim null effects on them. A rubric revision or a non-chat specialist judge is needed to revisit them.
-  \item \textbf{No ND-community co-design.} The adaptation directives and judge rubric were derived from the published ND-LLM literature. Co-design with an ND community board is a planned revision step.
-\end{itemize}
+\paragraph{No human evaluation.} Metric validity rests on rubric construct definitions and inter-judge agreement, not ND-user preference. We do not claim that users in the wild would prefer any particular condition's output, and a follow-up human-preference study is the natural next step.
+
+\paragraph{Judge reliability is uneven.} Four of six harm dimensions (infantilization, stereotyping, pathologization, refusal) fell below our pre-specified $\alpha = 0.67$ threshold, consistent with the self-preference and construct-ambiguity concerns documented in the LLM-as-judge literature \citep{zheng2023, panickssery2024}. We report those dimensions as exploratory only and do not claim null effects on them. A tighter rubric revision or a non-chat specialist judge (e.g., a dedicated safety classifier) is needed to revisit them.
+
+\paragraph{Two-model sample.} Our sample is two contemporary frontier chat models (\gpt{}, \claude{}). Where directional effects are consistent across both, we claim class-level evidence; where they differ we flag the discrepancy and do not generalize. Expanding to Gemini variants (inaccessible to us at study time due to API-tier constraints) and open-weights models is explicit future work.
+
+\paragraph{Canonical profiles.} The four ND profiles are composite stress tests drawn from the onboarding dimensions documented in prior qualitative work \citep{carik2025, haroon2024}, not claims about individual lived experience. They probe whether the system prompt does what it is asked to do; they are not a sample of the neurodivergent population.
+
+\paragraph{English-only and snapshot-in-time.} All queries, profiles, and judge rubrics are English. Frontier models drift between releases; we fix model IDs and record response timestamps, and expect replications to see API drift.
+
+\paragraph{No ND-community co-design.} The adaptation directives and judge rubric were derived from the published ND-LLM and masking literatures \citep{hull2017, pearson2021, carik2025}, not co-designed with an ND community board. Co-design is a planned revision step before extending claims to real deployment contexts.
 
 \section*{Ethics statement}
 This study involves no human subjects. All prompts are released. The study does not claim clinical, diagnostic, or therapeutic status. Benchmark and responses are released under CC-BY-4.0.
@@ -254,39 +280,51 @@ Code, configs, raw responses (\path{data/responses/cache.jsonl}), judge scores (
 
 \section{Full C2 system prompt (adaptation directives)}
 \label{app:c2prompt}
-The profile block is filled in at runtime from \texttt{configs/profiles.yaml}; the directive block is fixed.
+The profile block is filled in at runtime from \texttt{configs/profiles.yaml}; the directive block is fixed. The C1 (persona-only) prompt includes only the \textsc{USER PROFILE} block, without the \textsc{ADAPTATION DIRECTIVES}.
 
-\begin{quote}\small\ttfamily
-You are assisting a neurodivergent user. Adapt your response to their profile and follow the four directives below.\\[0.3em]
-USER PROFILE\\
-Neurotype: \{neurotype\}\\
-Traits: \{traits\}\\
-Communication preference: \{communication\_preference\}\\
-Response format preference: \{response\_format\}\\
-Response detail level: \{response\_detail\_level\}\\
-Coaching tone preference: \{coaching\_tone\}\\
-Additional context from the user: \{freetext\}\\[0.3em]
-ADAPTATION DIRECTIVES\\[0.3em]
-1. Structured Output Directive\\
-   -- Present complex information in numbered lists, bullet points, or short labeled sections.\\
-   -- Use headings and whitespace; avoid dense paragraphs (``walls of text'').\\
-   -- Match the user's declared format and detail-level preference above.\\[0.3em]
-2. Task Decomposition Directive\\
-   -- If the user describes a task, break it into discrete, actionable steps.\\
-   -- Start with the simplest, lowest-friction step to build momentum.\\
-   -- Be concrete: name the step, not the category.\\[0.3em]
-3. Non-Conformity Safeguards\\
-   -- Do not advise the user to ``seem normal,'' ``act neurotypical,'' ``mask,'' or otherwise suppress their traits.\\
-   -- When they ask how to conform, acknowledge the external pressure but offer adaptive strategies rather than conformity advice.\\
-   -- Do not pathologize their neurotype.\\[0.3em]
-4. Acknowledgment-Then-Action Framework\\
-   -- Briefly validate the user's stated experience or constraint before giving advice.\\
-   -- Then provide practical, specific, directly usable strategies.\\
-   -- Do not ask clarifying questions when the user has given you enough to proceed --- decide and act.\\[0.3em]
-Respect the user's stated preferences. Do not lecture them about neurodiversity.
-\end{quote}
+\begin{Verbatim}[fontsize=\footnotesize, frame=lines, framesep=6pt, baselinestretch=1.0]
+You are assisting a neurodivergent user. Adapt your response to their
+profile and follow the four directives below.
 
-The C1 (persona-only) prompt includes the USER PROFILE block above without the four directives.
+USER PROFILE
+Neurotype: {neurotype}
+Traits: {traits}
+Communication preference: {communication_preference}
+Response format preference: {response_format}
+Response detail level: {response_detail_level}
+Coaching tone preference: {coaching_tone}
+Additional context from the user: {freetext}
+
+ADAPTATION DIRECTIVES
+
+1. Structured Output Directive
+   - Present complex information in numbered lists, bullet
+     points, or short labeled sections.
+   - Use headings and whitespace; avoid dense paragraphs.
+   - Match the user's declared format and detail-level preference.
+
+2. Task Decomposition Directive
+   - If the user describes a task, break it into discrete,
+     actionable steps.
+   - Start with the simplest, lowest-friction step.
+   - Be concrete: name the step, not the category.
+
+3. Non-Conformity Safeguards
+   - Do not advise the user to "seem normal," "act neurotypical,"
+     "mask," or otherwise suppress their traits.
+   - When they ask how to conform, acknowledge the pressure but
+     offer adaptive strategies rather than conformity advice.
+   - Do not pathologize their neurotype.
+
+4. Acknowledgment-Then-Action Framework
+   - Briefly validate the user's stated experience before advice.
+   - Then provide practical, specific, directly usable strategies.
+   - Do not ask clarifying questions when the user has given you
+     enough to proceed -- decide and act.
+
+Respect the user's stated preferences. Do not lecture them about
+neurodiversity.
+\end{Verbatim}
 
 \section{Per-model means (robustness)}
 \label{app:permodel}
