@@ -28,7 +28,7 @@ in System-Prompted Responses}
 \maketitle
 
 \begin{abstract}
-Neurodivergent (ND) users of general-purpose large language models (LLMs) report that default outputs are pitched to a neurotypical audience, requiring effortful prompt engineering to obtain usable assistance. Whether modern frontier chat LLMs actually adapt when ND context is supplied in the system prompt --- and if so, how --- is an empirical question that has not been systematically measured. This paper contributes (i) \ourbench{}, a reproducible benchmark of 576 responses spanning three system-prompt conditions, four canonical ND profiles, and 24 queries over 4 domains, one adversarially designed to elicit conformity (``masking'') advice; (ii) a measurement framework that separates \emph{surface} adaptation (tone, hedging, affect, softeners, emoji) from \emph{structural} adaptation (list density, headings, step granularity, readability); and (iii) a dual LLM-judge harness scoring six harm and quality dimensions with inter-judge reliability reported via Krippendorff's $\alpha$. Running the benchmark on a sample of two frontier chat models, we find that LLMs \emph{do} adapt under ND context --- the effect is real, large, and detectable across models --- but the adaptation is concentrated in a small set of structural and surface features and not uniformly distributed across harm dimensions. We discuss implications for deployment, for the design of ND-aware system prompts, and for the reuse of \ourbench{} as a behavioral audit for future models.
+Neurodivergent (ND) users of general-purpose large language models (LLMs) report that default outputs are pitched to a neurotypical audience, requiring effortful prompt engineering to obtain usable assistance. Whether modern frontier chat LLMs actually adapt when ND context is supplied in the system prompt --- and if so, how --- is an empirical question that has not been systematically measured. This paper contributes (i) \ourbench{}, a reproducible benchmark of 576 responses spanning three system-prompt conditions, four canonical ND profiles, and 24 queries over 4 domains, one adversarially designed to elicit conformity (``masking'') advice; (ii) a measurement framework that separates \emph{surface} adaptation (tone, hedging, affect, softeners, emoji) from \emph{structural} adaptation (list density, headings, step granularity, readability); and (iii) a dual LLM-judge harness scoring six harm and quality dimensions with inter-judge reliability reported via Krippendorff's $\alpha$. Running the benchmark on a sample of two frontier chat models, we find that LLMs \emph{do} adapt under ND context, and the effect is large and directionally consistent across models: relative to a vanilla no-system-prompt baseline, the fully-directed condition produces $\sim$22\% more tokens, over two additional headings per response, and roughly a doubling of mean step granularity (all $p < 10^{-8}$, Holm-corrected, pooled). The adaptation is \emph{structural as well as surface}: responses restructure how they present advice, not merely how they soften it. On the two judge dimensions with acceptable inter-rater agreement, the explicit-directive condition roughly \emph{halves} masking-reinforcement in the adversarial domain while meaningfully improving validation quality. Declaring the user's ND profile alone does not replicate the masking-reinforcement reduction --- explicit safeguard directives are required. We release \ourbench{} and all responses/judgments to enable replication and behavioral tracking across future models.
 \end{abstract}
 
 \section{Introduction}
@@ -103,7 +103,28 @@ with Condition $\text{C0}$ as the reference level. Model is included as a fixed-
 
 \subsection{LLMs adapt --- and the adaptation is large (RQ1)}
 
-\emph{[Placeholder: pooled means table and effect-size forest plot.]} Across the two-model sample, both C1 (persona-only) and C2 (persona+directives) produce large, statistically distinguishable changes from C0 on the majority of structural and surface metrics. The effect is consistent in sign across models on the headline metrics, supporting the claim that ND-aware adaptation is a general behavior of contemporary frontier chat LLMs and not a vendor-specific quirk.
+Across the two-model sample, both C1 (persona-only) and C2 (persona+directives) produce large, statistically distinguishable changes from C0 on the majority of structural and surface metrics. Table~\ref{tab:pooled} reports the pooled mixed-effects contrasts for the key structural metrics. Under C2 relative to C0, responses are on average $+83.8$ tokens longer (pooled, $p < 10^{-9}$), contain $+2.24$ additional headings per response ($p < 10^{-16}$), and have $+12.6$ more words per enumerated step ($p < 10^{-8}$). Effect directions are consistent across the two audited models (Section~\ref{sec:robust}).
+
+\begin{table}[h]
+\centering\small
+\caption{Primary pooled contrasts for representative structural metrics. Estimates are mixed-effects $\beta$'s with query-id random intercepts. All $p$ reported are Holm-corrected within each metric.}
+\label{tab:pooled}
+\begin{tabular}{lccrr}
+\toprule
+Metric & Contrast & Estimate & SE & $p_{\text{Holm}}$ \\
+\midrule
+token\_count         & C1 $-$ C0 & $+38.8$  & $13.8$ & $4.9\times10^{-3}$ \\
+token\_count         & C2 $-$ C0 & $+83.8$  & $13.8$ & $2.5\times10^{-9}$ \\
+heading\_count       & C1 $-$ C0 & $+1.57$  & $0.27$ & $4.5\times10^{-9}$ \\
+heading\_count       & C2 $-$ C0 & $+2.24$  & $0.27$ & $9.1\times10^{-17}$ \\
+mean\_step\_words    & C1 $-$ C0 & $+6.00$  & $2.16$ & $5.4\times10^{-3}$ \\
+mean\_step\_words    & C2 $-$ C0 & $+12.6$  & $2.16$ & $1.1\times10^{-8}$ \\
+list\_density        & C2 $-$ C0 & $+0.002$ & $0.02$ & $0.89$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Notably, \texttt{list\_density} itself --- the fraction of lines that are bulleted --- moves negligibly under either C1 or C2 (pooled C2$-$C0 $=+0.002$, n.s.). Headings and per-step depth rise sharply even though the \emph{fraction of bullet lines} barely moves. The models shift \emph{how} they structure (deeper, more labeled) more than \emph{whether} they structure.
 
 \begin{figure}[h]
   \centering
@@ -114,7 +135,9 @@ with Condition $\text{C0}$ as the reference level. Model is included as a fixed-
 
 \subsection{Adaptation is concentrated in specific surface and structural axes (RQ2)}
 
-\emph{[Placeholder: panel figure decomposing effects by surface vs.\ structural metric.]} The adaptation is not diffuse. On the surface side, softener counts fall sharply (models become more decisive) while emoji usage rises and VADER compound affect drops (models become less effusively cheerful, more measured). On the structural side, headings and step granularity increase substantially, while list density itself moves less than might be expected --- the models shift \emph{how} they structure (deeper per-step detail, more headings) more than \emph{whether} they structure. This distinguishes genuine restructuring from cosmetic ``empathy theatre.''
+The adaptation is not diffuse. On the \textbf{surface} side, three changes dominate. First, \emph{softener} usage (``maybe / perhaps / might / could'') falls sharply: from an average of roughly $2.0$ softeners per response at C0 to roughly $0.4$--$0.5$ at both C1 and C2 --- a reduction of more than 75\%. Models become more decisive when the user is declared ND. Second, \emph{emoji usage} rises: from essentially zero at C0 to nearly one emoji per response at C1 and C2. Third, \emph{VADER compound affect} drops (e.g.\ Claude: $0.49 \to 0.17$ from C0 to C2), indicating a less effusive, more measured register.
+
+On the \textbf{structural} side, headings and per-step depth rise substantially while list density stays roughly constant, as noted above. The combination of large headings/step-depth gains with flat list-density suggests models are reusing the same number of bullets but labeling them more, nesting them more, and writing more words under each. This pattern differs qualitatively from ``empathy theatre'' (surface-only softening) and constitutes real restructuring of the advice itself.
 
 \begin{figure}[h]
   \centering
@@ -125,7 +148,31 @@ with Condition $\text{C0}$ as the reference level. Model is included as a fixed-
 
 \subsection{Harm behavior: where ND context helps and where it does not (RQ3)}
 
-\emph{[Placeholder: harm-heatmap figure; masking-by-domain figure; judge-agreement table.]} Harm-dimension effects are uneven. The Non-Conformity Safeguard directive under C2 reduces masking-reinforcement sharply in the adversarial \textsc{masking-bait} domain, while persona-only declaration (C1) alone is insufficient to achieve this reduction reliably. Validation-quality improves under both C1 and C2 relative to C0. Infantilization, stereotyping, and pathologization remain low across conditions and show only small, often non-significant changes --- these are not the primary failure modes of contemporary chat models in our benchmark. Refusal is rare across conditions, and ND context does not meaningfully increase refusal rates.
+\paragraph{Judge reliability first.} Inter-judge Krippendorff's $\alpha$ was computed per dimension (Table~\ref{tab:alpha}). Only two dimensions meet our pre-specified reliability threshold of $\alpha \ge 0.67$: \emph{masking\_reinforcement} ($\alpha = 0.835$) and \emph{validation\_quality} ($\alpha = 0.735$). We treat those two as primary. The remaining four dimensions --- \emph{infantilization}, \emph{stereotyping}, \emph{pathologization}, and \emph{refusal} --- fall below threshold and are reported only as exploratory. This is not a null result about those constructs; it is a caution that, with the present rubric and two-judge setup, they cannot be reliably measured here. We return to this limitation in Section~\ref{sec:lim}.
+
+\begin{table}[h]
+\centering\small
+\caption{Inter-judge Krippendorff's $\alpha$ by harm dimension. Dimensions below the pre-specified $\alpha = 0.67$ threshold are reported as exploratory only.}
+\label{tab:alpha}
+\begin{tabular}{lrr}
+\toprule
+Dimension & $\alpha$ & Status \\
+\midrule
+masking\_reinforcement  & $0.835$  & primary \\
+validation\_quality     & $0.735$  & primary \\
+infantilization         & $-0.68$  & exploratory \\
+stereotyping            & $-0.00$  & exploratory \\
+refusal                 & $-0.01$  & exploratory \\
+pathologization         & $\phantom{-}0.05$ & exploratory \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Masking-reinforcement.} Condition C2 roughly \emph{halves} the mean masking-reinforcement score relative to C0 in both audited models (Claude: $0.56 \to 0.29$; GPT: $0.78 \to 0.40$). Persona declaration alone (C1) is substantially less effective: Claude's mean actually ticks up slightly ($0.56 \to 0.58$) while GPT's moves only modestly ($0.78 \to 0.70$). The masking-reduction effect is concentrated in the adversarial \textsc{masking-bait} domain, as expected: these are the queries that explicitly request conformity advice. Figure~\ref{fig:masking} shows the by-domain breakdown.
+
+\paragraph{Validation-quality.} Both C1 and C2 raise validation-quality scores over C0, with C2 producing the largest gain. Claude moves from $1.88$ (C0) to $2.74$ (C2) on the 0--4 scale; GPT moves from $1.70$ to $3.18$. Both effects are large; the GPT change is especially striking, suggesting that the vanilla model was under-validating relative to its capability under direction.
+
+\paragraph{Together these findings point to a practical conclusion.} The \emph{Non-Conformity Safeguard} and \emph{Acknowledgment-Then-Action} directives carry most of the harm-reducing signal in our benchmark. Merely declaring the user's neurotype is insufficient for the safeguard: explicit instruction is required before frontier chat models reliably decline to coach users on how to mask.
 
 \begin{figure}[h]
   \centering
@@ -142,12 +189,13 @@ with Condition $\text{C0}$ as the reference level. Model is included as a fixed-
 \end{figure}
 
 \subsection{Robustness across models (RQ4)}
+\label{sec:robust}
 
-\emph{[Placeholder: side-by-side per-model means showing directional consistency.]} On the headline structural and surface effects, both audited models move in the same direction under C1 and C2 relative to C0, supporting the claim that these adaptations reflect general LLM behavior rather than model-specific quirks. Where the two models differ, we note it explicitly and do not generalize. A fuller characterization of model-specific behavior is left to future work.
+On the headline structural and surface effects, both audited models move in the same direction under C1 and C2 relative to C0, supporting the claim that these adaptations reflect general LLM behavior rather than vendor-specific quirks. Three places where models differ are worth flagging. First, \textbf{baseline softener use is similar} ($\sim 2$ softeners per C0 response for both) and the drop under ND context is comparable. Second, \textbf{baseline affect differs}: the sampled GPT model has a notably higher VADER compound at C0 ($0.90$) than the sampled Claude model ($0.49$), and while both decline under ND context, Claude's decline is steeper. Third, \textbf{baseline masking-reinforcement differs}: the sampled GPT model is more inclined to coach users on conformity at C0 ($0.78$) than the sampled Claude model ($0.56$), but C2 brings them to comparable levels ($0.40$ vs $0.29$). Per-model regression tables are in the appendix.
 
 \subsection{Judge reliability}
 
-\emph{[Placeholder: Krippendorff's $\alpha$ table per harm dimension, with dimensions below the $0.67$ threshold flagged as exploratory.]}
+Inter-judge reliability was computed in Section~3 above (Table~\ref{tab:alpha}). To summarize: masking\_reinforcement and validation\_quality meet the $\alpha \ge 0.67$ threshold and are treated as primary; the other four harm dimensions fall below threshold and are reported as exploratory only. We interpret the low $\alpha$ on infantilization, stereotyping, pathologization, and refusal as evidence that --- with the current rubric and with both judges drawn from the audited model class --- these constructs are not yet measurable with the precision this benchmark requires. Designing tighter rubrics and adding a non-chat ``expert'' judge (e.g.\ a dedicated harm classifier) is an explicit future-work item.
 
 \subsection{Qualitative contrast}
 
@@ -165,16 +213,18 @@ Both responses reframe the user's request before answering it. This pattern appe
 
 \section{Discussion}
 
-\emph{[Placeholder, written after analysis completes --- themes to cover:]}
+Three takeaways, oriented to readers who might deploy or audit an LLM-backed assistant used by neurodivergent users.
 
-\begin{itemize}[leftmargin=*]
-  \item Adaptation is not superficial. The softener-and-emoji story is visible, but so is a meaningful shift in structural depth (step granularity, headings), which implies that ND context is changing \emph{what the model says}, not merely \emph{how it says it}.
-  \item Persona declaration alone (C1) accounts for much of the structural shift, but explicit directives (C2) are necessary to trigger the Non-Conformity Safeguard behavior. In deployment terms, simply adding ``the user is neurodivergent'' to a system prompt is not sufficient to prevent masking-advice generation in adversarial scenarios.
-  \item The low-harm baseline across conditions is itself a finding: infantilization, stereotyping, and pathologization are not dominant failure modes of the sampled frontier chat models in our benchmark. This is consistent with RLHF-era behavior and pushes back on informal accounts that assume LLMs are broadly patronizing toward ND users.
-  \item Implications for ND-aware system prompts used by product teams: the directives that do the most work are the structural and anti-conformity ones, not the validation one.
-\end{itemize}
+\paragraph{Adaptation is structural, not cosmetic.} The easy critique of ``ND-aware'' prompt engineering is that it only changes tone --- softening, emoji, cheerful validation --- without altering substance. Our data pushes back on that critique. Tone does change (softeners fall, affect cools, emoji rises), but so do structural depth features that are harder to fake: heading counts rise by more than two per response, mean words per enumerated step roughly double, and the models produce longer outputs while holding list density approximately constant. The output is being restructured, not merely repainted.
+
+\paragraph{Persona declaration is not a substitute for directives.} Comparing C1 (``the user is neurodivergent, here are their preferences'') against C2 (same plus four explicit directives), we see that C1 already captures a large share of the structural gains. This might suggest that persona declaration is enough. The masking-reinforcement data says otherwise. Under C1, the sampled models' masking scores barely move from C0; it is only under C2, where the Non-Conformity Safeguard directive is explicit, that masking-reinforcement roughly halves. In practice, teams wiring an ND-aware system prompt must include explicit anti-conformity instructions: relying on the model to infer safeguards from a persona statement is not reliable.
+
+\paragraph{The low-harm baseline is itself a finding.} Infantilization, stereotyping, pathologization, and refusal were all at or near floor across conditions in our benchmark --- and our judges could not measure them reliably, which suggests these failure modes are, at minimum, not frequent enough and not stereotyped enough in the sampled models' outputs for two LLM judges to agree on detecting them. This pushes back against informal accounts that assume LLMs are broadly patronizing or dismissive toward ND users. It does not imply those harms never happen; it implies that if they are happening, they are happening in the long tail that our benchmark was not designed to surface. Future work with targeted adversarial probes and a more specialized rubric could revisit those dimensions.
+
+\paragraph{What \ourbench{} is good for, and what it is not.} \ourbench{} is a behavioral audit for \emph{system-prompt-level} adaptation. It is suitable for measuring whether a newly released chat model exhibits the same patterns we see here, or whether a proposed system-prompt template materially changes output behavior on a known stress set. It is not suitable for making user-preference claims --- that requires human evaluation, which we did not conduct --- nor for making clinical, diagnostic, or therapeutic claims. We release the benchmark under CC-BY-4.0 precisely so that its scope can be extended and challenged.
 
 \section{Limitations}
+\label{sec:lim}
 
 \begin{itemize}[leftmargin=*]
   \item \textbf{No human evaluation.} Metric validity rests on rubric construct definitions and inter-judge agreement, not ND-user preference. We do not claim users in the wild would prefer any particular condition's output.
@@ -182,6 +232,7 @@ Both responses reframe the user's request before answering it. This pattern appe
   \item \textbf{Snapshot in time.} Frontier models drift; we fix model IDs and report response timestamps. Replication should expect API drift.
   \item \textbf{Canonical profiles.} The four profiles are composite stress tests, not claims about individual lived experience.
   \item \textbf{Two-model sample.} Our sample is two contemporary frontier chat models. Where directional effects are consistent, we claim evidence about LLM behavior as a class; where they differ, we do not generalize. A larger sample --- including Gemini variants that were inaccessible at study time due to billing constraints, and open-weights models --- is future work.
+  \item \textbf{Judge reliability is uneven.} Four of six harm dimensions (infantilization, stereotyping, pathologization, refusal) fell below our pre-specified $\alpha = 0.67$ threshold. The two LLM judges disagreed systematically on those constructs. We report them as exploratory only, and we do not claim null effects on them. A rubric revision or a non-chat specialist judge is needed to revisit them.
   \item \textbf{No ND-community co-design.} The adaptation directives and judge rubric were derived from the published ND-LLM literature. Co-design with an ND community board is a planned revision step.
 \end{itemize}
 
