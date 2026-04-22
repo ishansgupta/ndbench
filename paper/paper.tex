@@ -242,7 +242,7 @@ Three takeaways, oriented to readers who might deploy or audit an LLM-backed ass
 This study involves no human subjects. All prompts are released. The study does not claim clinical, diagnostic, or therapeutic status. Benchmark and responses are released under CC-BY-4.0.
 
 \section*{Reproducibility}
-Code, configs, raw responses, judge scores, and analysis scripts will be released in a public repository at submission; the exact commit hash is fixed at that point. Reruns should reproduce results to within API drift. Specifically: 576 responses over 2 models $\times$ 3 conditions $\times$ 4 profiles $\times$ 24 queries; 1{,}152 judge scores (2 judges per response); all sampled at temperature $0$ for determinism.
+Code, configs, raw responses (\path{data/responses/cache.jsonl}), judge scores (\path{data/judgments/cache.jsonl}), analysis scripts, and this paper's \LaTeX{} source are available at \url{https://github.com/ishansgupta/ndbench}. The exact commit hash for the results in this paper is fixed at submission and will be noted in a release tag. Reruns should reproduce results to within API drift (temperature $0$ is used throughout but provider-side routing can still change output across time). Specifically: 576 responses over 2 models $\times$ 3 conditions $\times$ 4 profiles $\times$ 24 queries; 1{,}152 judge scores (2 judges per response).
 
 \bibliographystyle{plainnat}
 \bibliography{refs}
